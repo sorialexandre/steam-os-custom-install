@@ -1,25 +1,26 @@
 # 🎮 SteamOS Custom Installer (Non-Destructive)
 
-This repository contains a custom script that allows you to install the **official SteamOS** alongside your existing **Windows 11** installation **without wiping the disk**.
+This repository provides a **custom SteamOS installation script** that allows users to **preserve Windows**, **wipe the disk entirely**, or **manually configure partition indices** for maximum flexibility.
 
 It is designed to work with devices like the **Lenovo Legion Go** (or similar), and leverages the official SteamOS media to create a functional dual-boot system using the remaining unallocated space on your disk.
 
 ---
 
-## ✅ What This Does
+## ✅ What This Script Does
 
-- Preserves your existing Windows installation.
-- Installs SteamOS into the available unallocated space.
-- Creates partitions automatically starting at a custom index.
-- Configures SteamOS with dual rootfs (A/B setup) and var/home partitions.
-- Finalizes GRUB bootloader via official `steamcl-install` flow.
+- **Creates SteamOS partitions automatically** or lets users **manually define partition indices**.
+- **Preserves Windows** unless the user selects full disk wipe.
+- **Allows full disk wipe** for a clean SteamOS-only install.
+- **Properly installs and configures the bootloader** using GRUB.
+- **Detects Windows automatically** and ensures proper dual-boot setup.
 
 ---
 
-## 💡 Before You Begin
+## ⚠️ Before You Begin
 
-> ⚠️ This script assumes Windows occupies partitions 1 through 4.  
-> Adjust accordingly if your setup is different! Check Step 3 for more details.
+- **Backup Your Data:** Any disk operation carries risk **Make backups!** Selecting "full disk wipe" will erase everything.
+- **UEFI Boot Mode Required:** Legacy BIOS setups may require additional steps.
+- **Windows Users:** If you want dual boot, **do not select full wipe**.
 
 ---
 
@@ -31,21 +32,41 @@ Download the official [SteamOS recovery image](https://store.steampowered.com/st
 
 ---
 
-### 2️⃣ Shrink the Windows Partition
+### 2️⃣ Shrink the Windows Partition (Optional)
+    Use a partition tool like:
 
-Use a partition tool like:
+    - **GParted** (inside the SteamOS installer), or
+    - **Windows Disk Management** (before booting into SteamOS)
 
-- **GParted** (inside the SteamOS installer), or
-- **Windows Disk Management** (before booting into SteamOS)
-
-...to shrink your existing Windows partition and leave **unallocated space** large enough to accommodate SteamOS (~12–15GB minimum).
+    ...to shrink your existing Windows partition and leave **unallocated space** large enough to accommodate SteamOS (~12–15GB minimum).
 
 ---
 
-### 3️⃣ Edit the Partition Indices (Optional)
+### 3️⃣ Launch Installation
 
-If your Windows uses more than 4 partitions, or you've already added partitions, **edit the script** and change the indices accordingly to avoid overlap.
-Open the script in a text editor and check the following values:
+Once in the SteamOS installer desktop:
+
+1. Copy the script`steam-os-custom-install.sh` to your **Desktop**.
+2. Open the terminal and apply execute permissions by run:
+```bash
+sudo chmod +x ./Desktop/steam-os-custom-install.sh
+```
+3. Launch the installer from the terminal with:
+```bash
+sudo ./Desktop/steam-os-custom-install.sh
+```
+
+---
+
+### 4️⃣ During Installation
+
+The script offers **three installation modes**:
+
+1. **Full Disk Wipe** → **Deletes all partitions** and sets up SteamOS from scratch.
+2. **Preserve Partitions** → Uses available free space for SteamOS while keeping Windows intact.
+3. **Manual Partition Indexing** → **User selects partition numbers**, ensuring compatibility with custom layouts.
+
+If choosing **manual indexing**, you’ll be prompted to enter partition indices. Example, assuming Windows occupies partitions 1 through 4, choose as follow:
 
 ```bash
 FS_ESP=5
@@ -57,43 +78,18 @@ FS_VAR_A=10
 FS_VAR_B=11
 FS_HOME=12
 ```
+---
+
+## 🔄 Post-Installation
+
+- **GRUB automatically detects Windows** (if enabled).
+- **SteamOS boots securely**.
+- **Boot order can be adjusted via EFI if needed**.
 
 ---
 
-### 4️⃣ Final Step
+## ⚠️ Disclaimer
 
-Once in the SteamOS installer desktop:
-
-1. Copy the script`steam-os-custom-install.sh` to your **Desktop**.
-2. Open the terminal and apply execute permissions by run:
-```bash
-sudo chmod +x /Desktop/steam-os-custom-install.sh
-```
-3. Launch the installer from the terminal with:
-```bash
-sudo ./Desktop/steam-os-custom-install.sh
-```
-
-It will:
-
-- Automatically create the required partitions in unallocated space.
-- Format them correctly (FAT32 for ESP/EFI; EXT4 or BTRFS for the rest).
-- Freeze the USB filesystem and copy it to rootfs-A/B.
-- Finalize GRUB using `steamos-chroot` and `steamcl-install`.
-- Reboot when done.
-
----
-
-## 🔁 After Installation
-
-- On reboot, your system should show a boot menu with **SteamOS** and **Windows** entries.
-- If Windows isn’t detected, make sure `os-prober` is present or manually add the entry.
-- You can also use the BIOS boot menu to select between Windows and the SteamOS bootloader.
-
----
-
-## 📢 Notes
-
-- **Data safety:** The script **does not overwrite** the Windows partition, but any disk operation carries risk. **Make backups.**
-- **Advanced use only:** You are responsible for checking your existing partition layout.
-- **UEFI-only:** This script assumes the system uses UEFI boot mode.
+- **Full wipe mode erases everything**—use cautiously.
+- This script **does not remove Windows** unless full wipe is chosen.
+- If boot fails, **manual EFI repair may be needed** using a Windows recovery USB.
