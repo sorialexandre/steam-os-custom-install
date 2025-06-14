@@ -60,28 +60,16 @@ FS_HOME=12
 
 ---
 
-### 4️⃣ Copy the Script to the SteamOS Desktop
+### 4️⃣ Final Step
 
-Once in the installer desktop:
+Once in the SteamOS installer desktop:
 
 1. Copy the script`steam-os-custom-install.sh` to your **Desktop**.
-
----
-
-### 5️⃣ Apply Execute Permissions
-
-Open the terminal and run:
-
+2. Open the terminal and apply execute permissions by run:
 ```bash
 sudo chmod +x /Desktop/steam-os-custom-install.sh
 ```
-
----
-
-### 6️⃣ Run the Script
-
-Launch the installer from the terminal with:
-
+3. Launch the installer from the terminal with:
 ```bash
 sudo ./Desktop/steam-os-custom-install.sh
 ```
@@ -98,9 +86,9 @@ It will:
 
 ## 🔁 After Installation
 
-- On reboot, your system should show on boot menu with **SteamOS** and **Windows** entries.
+- On reboot, your system should show a boot menu with **SteamOS** and **Windows** entries.
 - If Windows isn’t detected, make sure `os-prober` is present or manually add the entry.
-- You can also use BIOS boot menu to select between Windows and SteamOS bootloader.
+- You can also use the BIOS boot menu to select between Windows and the SteamOS bootloader.
 
 ---
 
