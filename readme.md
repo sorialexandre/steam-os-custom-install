@@ -19,7 +19,7 @@ It is designed to work with devices like the **Lenovo Legion Go** (or similar), 
 ## 💡 Before You Begin
 
 > ⚠️ This script assumes Windows occupies partitions 1 through 4.  
-> Adjust accordingly if your setup is different! Check Step 3 for moer details.
+> Adjust accordingly if your setup is different! Check Step 3 for more details.
 
 ---
 
@@ -100,6 +100,7 @@ It will:
 
 - On reboot, your system should show on boot menu with **SteamOS** and **Windows** entries.
 - If Windows isn’t detected, make sure `os-prober` is present or manually add the entry.
+- You can also use BIOS boot menu to select between Windows and SteamOS bootloader.
 
 ---
 
