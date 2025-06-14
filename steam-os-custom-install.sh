@@ -4,8 +4,14 @@ set -eu
 ##############################################################################
 # Utility Functions
 ##############################################################################
-die() { echo >&2 "!! $*"; exit 1; }
-cmd() { echo >&2 "+ $*"; "$@"; }
+die() {
+  echo >&2 "!! $*"
+  exit 1
+}
+cmd() {
+  echo >&2 "+ $*"
+  "$@"
+}
 log() { echo >&2 "[INFO] $*"; }
 
 # Zenity-based prompt for user confirmation
@@ -35,10 +41,12 @@ prompt_reboot() {
 ##############################################################################
 # Configuration – Change these values as needed
 ##############################################################################
+prompt_step "Custom SteamOS Install" \
+  "This action installs SteamOS on this device. You can either wipe the entire disk or create new partitions by specifying their indices.\n\nWARNING: Ensure that sufficient unallocated space exists and you understand the risks."
 
 # Target disk – be very careful with this.
 DISK=/dev/nvme0n1
-DISK_SUFFIX="p"   # Adjust if your disk device does not use a 'p' suffix (e.g. /dev/sda1)
+DISK_SUFFIX="p" # Adjust if your disk device does not use a 'p' suffix (e.g. /dev/sda1)
 
 # Partition sizes in MiB for SteamOS:
 PART_SIZE_ESP="256"
@@ -47,16 +55,40 @@ PART_SIZE_ROOT="5120"
 PART_SIZE_VAR="256"
 PART_SIZE_HOME="100"
 
-# Custom partition indices (so that we don’t rework the entire disk dialog)
-# In "custom" mode these indices come from unallocated space.
-FS_ESP=5
-FS_EFI_A=6
-FS_EFI_B=7
-FS_ROOT_A=8
-FS_ROOT_B=9
-FS_VAR_A=10
-FS_VAR_B=11
-FS_HOME=12
+# Disk Setup
+if zenity --question \
+  --title="Disk Setup Options" \
+  --text="Do you want to wipe the entire disk before installing SteamOS?\n\nSelecting 'No' will require you to manually specify partition indices."; then
+  if zenity --question \
+    --title="Confirm Disk Wipe" \
+    --text="⚠️ WARNING: This will erase ALL DATA on the disk! \n\nAre you absolutely sure you want to continue?"; then
+
+    writePartitionTable=1 # Enable full disk wipe
+    FS_ESP=1
+    FS_EFI_A=2
+    FS_EFI_B=3
+    FS_ROOT_A=4
+    FS_ROOT_B=5
+    FS_VAR_A=6
+    FS_VAR_B=7
+    FS_HOME=8
+  else
+    log "Disk wipe canceled by user."
+    exit 1 # Abort operation if user cancels
+  fi
+else
+  writePartitionTable=0 # Keep existing partitions and require manual indices
+
+  # Require user to enter partition indices with default values
+  FS_ESP=$(zenity --entry --title="Configure ESP" --text="Enter index for ESP partition:" --entry-text="5") || exit 1
+  FS_EFI_A=$(zenity --entry --title="Configure EFI-A" --text="Enter index for EFI-A partition:" --entry-text="6") || exit 1
+  FS_EFI_B=$(zenity --entry --title="Configure EFI-B" --text="Enter index for EFI-B partition:" --entry-text="7") || exit 1
+  FS_ROOT_A=$(zenity --entry --title="Configure rootfs-A" --text="Enter index for rootfs-A partition:" --entry-text="8") || exit 1
+  FS_ROOT_B=$(zenity --entry --title="Configure rootfs-B" --text="Enter index for rootfs-B partition:" --entry-text="9") || exit 1
+  FS_VAR_A=$(zenity --entry --title="Configure var-A" --text="Enter index for var-A partition:" --entry-text="10") || exit 1
+  FS_VAR_B=$(zenity --entry --title="Configure var-B" --text="Enter index for var-B partition:" --entry-text="11") || exit 1
+  FS_HOME=$(zenity --entry --title="Configure Home" --text="Enter index for home partition:" --entry-text="12") || exit 1
+fi
 
 ##############################################################################
 # Functions to Create and Format Custom SteamOS Partitions
@@ -89,7 +121,7 @@ create_custom_parts() {
 }
 
 # Format functions (using sudo)
-fmt_ext4()  { cmd sudo mkfs.ext4 -F -L "$1" "$2"; }
+fmt_ext4() { cmd sudo mkfs.ext4 -F -L "$1" "$2"; }
 fmt_fat32() { cmd sudo mkfs.vfat -F32 -n "$1" "$2"; }
 
 ##############################################################################
@@ -105,7 +137,7 @@ imageroot() {
   local src="$1" target="$2"
   log "Copying from $src to $target..."
   cmd dd if="$src" of="$target" bs=128M status=progress oflag=sync
-  cmd btrfstune -f -u "$target"  # Update UUID to avoid duplication issues
+  cmd btrfstune -f -u "$target" # Update UUID to avoid duplication issues
   cmd btrfs check "$target"
 }
 
@@ -125,24 +157,25 @@ finalize_part() {
 # Main Repair/Installation Function
 ##############################################################################
 repair_steps() {
+  if [[ $writePartitionTable = 1 ]]; then
+    estat "Write known partition table"
+    echo "$PARTITION_TABLE" | sfdisk "$DISK"
+  fi
+
   # Format the var partitions first
   log "Formatting 'var' partitions..."
   fmt_ext4 var "$(diskpart $FS_VAR_A)"
   fmt_ext4 var "$(diskpart $FS_VAR_B)"
 
   # Create boot partitions
-  if [[ $writeOS = 1 ]]; then
-    log "Formatting boot partitions..."
-    fmt_fat32 esp "$(diskpart $FS_ESP)"
-    fmt_fat32 efi "$(diskpart $FS_EFI_A)"
-    fmt_fat32 efi "$(diskpart $FS_EFI_B)"
-  fi
+  log "Formatting boot partitions..."
+  fmt_fat32 esp "$(diskpart $FS_ESP)"
+  fmt_fat32 efi "$(diskpart $FS_EFI_A)"
+  fmt_fat32 efi "$(diskpart $FS_EFI_B)"
 
-  if [[ $writeHome = 1 ]]; then
-    log "Formatting home partition..."
-    cmd sudo mkfs.ext4 -F -O casefold -T huge -L home "$(diskpart $FS_HOME)"
-    cmd tune2fs -m 0 "$(diskpart $FS_HOME)"
-  fi
+  log "Formatting home partition..."
+  cmd sudo mkfs.ext4 -F -O casefold -T huge -L home "$(diskpart $FS_HOME)"
+  cmd tune2fs -m 0 "$(diskpart $FS_HOME)"
 
   # BIOS update staging is skipped here for brevity (remove unused functions)
 
@@ -176,13 +209,6 @@ repair_steps() {
 ##############################################################################
 # Main – Custom Installation Branch
 ##############################################################################
-
-# The "custom" branch creates a new set of SteamOS partitions at custom indices
-# without wiping the whole disk.
-prompt_step "Custom SteamOS Install" "This action installs SteamOS on this device (without wiping the entire disk) by creating a new set of partitions starting at index $FS_ESP.\nWARNING: Ensure that sufficient unallocated space exists and you understand the risks."
-writePartitionTable=0  # Do NOT re-write the entire partition table
-writeOS=1
-writeHome=1
 
 # Create the custom partitions (if not already present)
 create_custom_parts

@@ -1,4 +1,4 @@
-# 🎮 SteamOS Custom Installer (Non-Destructive Custom Script)
+# 🎮 SteamOS Custom Installer (Non-Destructive)
 
 This repository contains a custom script that allows you to install the **official SteamOS** alongside your existing **Windows 11** installation **without wiping the disk**.
 
@@ -35,8 +35,8 @@ Download the official [SteamOS recovery image](https://store.steampowered.com/st
 
 Use a partition tool like:
 
-- **Windows Disk Management** (before booting into SteamOS), or
-- **GParted** (inside the installer)
+- **GParted** (inside the SteamOS installer), or
+- **Windows Disk Management** (before booting into SteamOS)
 
 ...to shrink your existing Windows partition and leave **unallocated space** large enough to accommodate SteamOS (~12–15GB minimum).
 
