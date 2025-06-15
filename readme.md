@@ -33,12 +33,12 @@ Download the official [SteamOS recovery image](https://store.steampowered.com/st
 ---
 
 ### 2️⃣ Shrink the Windows Partition (Optional)
-    Use a partition tool like:
+Use a partition tool like:
 
-    - **GParted** (inside the SteamOS installer), or
-    - **Windows Disk Management** (before booting into SteamOS)
+- **KDE Partition Manager** (inside the SteamOS installer), or
+- **Windows Disk Management** (before booting into SteamOS)
 
-    ...to shrink your existing Windows partition and leave **unallocated space** large enough to accommodate SteamOS (~12–15GB minimum).
+...to shrink your existing Windows partition and leave **unallocated space** large enough to accommodate SteamOS (~12–15GB minimum).
 
 ---
 
@@ -47,7 +47,7 @@ Download the official [SteamOS recovery image](https://store.steampowered.com/st
 Once in the SteamOS installer desktop:
 
 1. Copy the script`steam-os-custom-install.sh` to your **Desktop**.
-2. Open the terminal and apply execute permissions by run:
+2. Open the terminal and apply execute permissions by running:
 ```bash
 sudo chmod +x ./Desktop/steam-os-custom-install.sh
 ```
@@ -66,7 +66,7 @@ The script offers **three installation modes**:
 2. **Preserve Partitions** → Uses available free space for SteamOS while keeping Windows intact.
 3. **Manual Partition Indexing** → **User selects partition numbers**, ensuring compatibility with custom layouts.
 
-If choosing **manual indexing**, you’ll be prompted to enter partition indices. Example, assuming Windows occupies partitions 1 through 4, choose as follow:
+If choosing **manual indexing**, you’ll be prompted to enter partition indices. For example, assuming Windows occupies partitions 1 through 4, choose as follows:
 
 ```bash
 FS_ESP=5
@@ -91,5 +91,5 @@ FS_HOME=12
 ## ⚠️ Disclaimer
 
 - **Full wipe mode erases everything**—use cautiously.
-- This script **does not remove Windows** unless full wipe is chosen.
+- This script **does not remove Windows** unless a full wipe is chosen.
 - If boot fails, **manual EFI repair may be needed** using a Windows recovery USB.
