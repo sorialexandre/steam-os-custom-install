@@ -38,6 +38,57 @@ prompt_reboot() {
   fi
 }
 
+# return sanitize state (and echo the current percentage complete)
+# 0 : ready to sanitize
+# 1 : sanitize in progress (echo the current percentage)
+# 2 : drive does not support sanitize
+#
+get_sanitize_progress() {
+  status=$(nvme sanitize-log "${DISK}" | grep "(SSTAT)" | grep -oEi "(0x)?[[:xdigit:]]+$") || return 2
+  [[ $((status % 8)) -eq 2 ]] || return 0
+
+  progress=$(nvme sanitize-log "${DISK}" | grep "(SPROG)" | grep -oEi "(0x)?[[:xdigit:]]+$") || return 2
+  echo "sanitize progress: $(((progress * 100) / 65535))%"
+  return 1
+}
+
+# call nvme sanitize, blockwise, and wait for it to complete.
+#
+sanitize_all() {
+  sres=0
+  get_sanitize_progress || sres=$?
+  case $sres in
+  0)
+    echo
+    echo "Warning!"
+    echo
+    echo "This action irrevocably clears *all* user data from ${DISK}"
+    echo "Pausing five seconds in case you didn't mean to do this..."
+    sleep 5
+    echo "Ok, let's go. Sanitizing ${DISK}:"
+    nvme sanitize -a 2 "${DISK}"
+    echo "Sanitize action started."
+    ;;
+  1)
+    echo "An NVME sanitize action is already in progress."
+    ;;
+  2) # use NVME secure-format since this device does not appear to support sanitize
+    nvme format "${DISK}" -n 1 -s 1 -r
+    return 0
+    ;;
+  *)
+    echo "Unexpected result from sanitize-log"
+    return $sres
+    ;;
+  esac
+
+  while ! get_sanitize_progress; do
+    sleep 5
+  done
+
+  echo "... sanitize done."
+}
+
 ##############################################################################
 # Configuration – Change these values as needed
 ##############################################################################
@@ -63,6 +114,7 @@ if zenity --question \
     --title="Confirm Disk Wipe" \
     --text="⚠️ WARNING: This will erase ALL DATA on the disk! \n\nAre you absolutely sure you want to continue?"; then
 
+    sanitize_all
     writePartitionTable=1 # Enable full disk wipe
     FS_ESP=1
     FS_EFI_A=2
